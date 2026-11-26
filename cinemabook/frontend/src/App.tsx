@@ -19,6 +19,11 @@ import { UploadFilmPage }   from './pages/owner/UploadFilmPage';
 import { BankLinkPage }     from './pages/owner/BankLinkPage';
 import { EditFilmPage }     from './pages/owner/EditFilmPage';
 
+// Social (Phase 4)
+import { SocialFeedPage }    from './pages/social/SocialFeedPage';
+import { HashtagPage }       from './pages/social/HashtagPage';
+import { UserProfilePage }   from './pages/social/UserProfilePage';
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
 });
@@ -35,17 +40,20 @@ function AppRoutes() {
 
       {/* Watcher */}
       <Route element={<ProtectedRoute requiredRole="WATCHER" />}>
-        <Route path="/dashboard"           element={<WatcherDashboard />} />
-        <Route path="/films/:filmId"       element={<FilmDetailPage />} />
-        <Route path="/watch/:filmId"       element={<WatchPage />} />
+        <Route path="/dashboard"            element={<WatcherDashboard />} />
+        <Route path="/films/:filmId"        element={<FilmDetailPage />} />
+        <Route path="/watch/:filmId"        element={<WatchPage />} />
+        <Route path="/social"              element={<SocialFeedPage />} />
+        <Route path="/social/hashtag/:tag"  element={<HashtagPage />} />
+        <Route path="/profile/:username"    element={<UserProfilePage />} />
       </Route>
 
       {/* Film owner */}
       <Route element={<ProtectedRoute requiredRole="FILM_OWNER" />}>
-        <Route path="/owner/dashboard"            element={<OwnerDashboard />} />
-        <Route path="/owner/upload"               element={<UploadFilmPage />} />
-        <Route path="/owner/bank"                 element={<BankLinkPage />} />
-        <Route path="/owner/films/:filmId/edit"   element={<EditFilmPage />} />
+        <Route path="/owner/dashboard"          element={<OwnerDashboard />} />
+        <Route path="/owner/upload"             element={<UploadFilmPage />} />
+        <Route path="/owner/bank"               element={<BankLinkPage />} />
+        <Route path="/owner/films/:filmId/edit" element={<EditFilmPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

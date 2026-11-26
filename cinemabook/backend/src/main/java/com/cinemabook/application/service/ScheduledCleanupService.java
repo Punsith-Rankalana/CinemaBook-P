@@ -1,5 +1,6 @@
 package com.cinemabook.application.service;
 
+import com.cinemabook.infrastructure.persistence.PostRepository;
 import com.cinemabook.infrastructure.persistence.StreamingSessionRepository;
 import com.cinemabook.infrastructure.persistence.TicketRepository;
 import com.cinemabook.infrastructure.persistence.RefreshTokenCleanupRepository;
@@ -23,6 +24,7 @@ public class ScheduledCleanupService {
     private final RefreshTokenCleanupRepository refreshTokenCleanupRepository;
     private final StreamingSessionRepository    sessionRepository;
     private final TicketRepository              ticketRepository;
+    private final PostRepository                postRepository;
 
     /** Delete expired refresh tokens. Runs daily at 03:00 UTC. */
     @Scheduled(cron = "0 0 3 * * *")
@@ -52,12 +54,16 @@ public class ScheduledCleanupService {
         }
     }
 
-    /** Post auto-delete — wired in Phase 4. Runs every hour. */
+    /**
+     * Auto-delete posts older than 5 days (Phase 4 — now wired).
+     * Posts have auto_delete_at set at creation: NOW + 5 days.
+     * Runs every hour.
+     */
     @Scheduled(cron = "0 30 * * * *")
     @Transactional
     public void purgeExpiredPosts() {
-        // TODO Phase 4: postRepository.deleteExpiredPosts(Instant.now());
-        log.debug("purgeExpiredPosts: wired in Phase 4");
+        int deleted = postRepository.deleteExpiredPosts(Instant.now());
+        if (deleted > 0) log.info("Auto-deleted {} expired posts", deleted);
     }
 
     /** Ephemeral message media cleanup — wired in Phase 5. Runs every 15 min. */

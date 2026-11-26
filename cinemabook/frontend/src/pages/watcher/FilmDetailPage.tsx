@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Play, Ticket, Clock, Star, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Play, Ticket, Clock, Star, AlertCircle, Users } from 'lucide-react';
 import { filmService } from '../../services/filmService';
 import { watcherService } from '../../services/watcherService';
+import { FilmComments } from '../../components/social/FilmComments';
+import { PostCard } from '../../components/social/PostCard';
+import { CreatePostForm } from '../../components/social/CreatePostForm';
+import { socialService } from '../../services/socialService';
 
 export function FilmDetailPage() {
   const { filmId } = useParams<{ filmId: string }>();
   const navigate   = useNavigate();
   const qc         = useQueryClient();
   const [buyError, setBuyError] = useState('');
+  const [socialTab, setSocialTab] = useState<'comments' | 'posts'>('comments');
 
   const { data: film, isLoading, isError } = useQuery({
     queryKey: ['film', filmId],
@@ -21,6 +26,13 @@ export function FilmDetailPage() {
   const { data: ticketsData } = useQuery({
     queryKey: ['myTickets', 0],
     queryFn: () => watcherService.getMyTickets(0, 100),
+  });
+
+  const filmPostsKey = ['filmPosts', filmId, 0];
+  const { data: filmPosts } = useQuery({
+    queryKey: filmPostsKey,
+    queryFn: () => socialService.getFilmPosts(filmId!, 0, 5),
+    enabled: !!filmId && socialTab === 'posts',
   });
 
   const alreadyOwns = ticketsData?.tickets.some(t => t.filmId === filmId);
@@ -53,9 +65,7 @@ export function FilmDetailPage() {
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
           <p className="text-neutral-300 mb-4">Film not found or not available.</p>
-          <Link to="/dashboard" className="text-amber-400 hover:underline text-sm">
-            ← Back to browse
-          </Link>
+          <Link to="/dashboard" className="text-amber-400 hover:underline text-sm">← Back to browse</Link>
         </div>
       </div>
     );
@@ -67,7 +77,6 @@ export function FilmDetailPage() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
-      {/* Header */}
       <header className="border-b border-neutral-800 px-6 py-4 flex items-center gap-4">
         <Link to="/dashboard"
           className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-sm">
@@ -77,33 +86,28 @@ export function FilmDetailPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 mb-10">
 
           {/* Left: thumbnail + info */}
           <div className="md:col-span-2">
-            {/* Thumbnail */}
             <div className="aspect-video bg-neutral-900 border border-neutral-800 rounded-2xl
                             overflow-hidden flex items-center justify-center mb-6">
-              {film.thumbnailUrl ? (
-                <img src={film.thumbnailUrl} alt={film.title}
-                  className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex flex-col items-center text-neutral-700">
-                  <Play className="w-16 h-16 mb-2" />
-                  <p className="text-sm">No preview available</p>
-                </div>
-              )}
+              {film.thumbnailUrl
+                ? <img src={film.thumbnailUrl} alt={film.title} className="w-full h-full object-cover" />
+                : <div className="flex flex-col items-center text-neutral-700">
+                    <Play className="w-16 h-16 mb-2" />
+                    <p className="text-sm">No preview available</p>
+                  </div>}
             </div>
 
             <h1 className="text-3xl font-bold mb-4">{film.title}</h1>
 
-            {/* Badges */}
             <div className="flex flex-wrap gap-2 mb-5">
-              {film.genre     && <Badge>{film.genre}</Badge>}
-              {film.ageRating && <Badge>{film.ageRating}</Badge>}
+              {film.genre      && <Badge>{film.genre}</Badge>}
+              {film.ageRating  && <Badge>{film.ageRating}</Badge>}
               {film.releaseYear && <Badge>{film.releaseYear}</Badge>}
-              {film.language  && <Badge>{film.language}</Badge>}
-              {durationMin    && <Badge icon={<Clock className="w-3 h-3" />}>{durationMin}</Badge>}
+              {film.language   && <Badge>{film.language}</Badge>}
+              {durationMin     && <Badge icon={<Clock className="w-3 h-3" />}>{durationMin}</Badge>}
             </div>
 
             {film.description && (
@@ -113,8 +117,7 @@ export function FilmDetailPage() {
             {film.tags && film.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {film.tags.map(tag => (
-                  <span key={tag}
-                    className="text-xs bg-neutral-800 text-neutral-400 px-2 py-1 rounded-full">
+                  <span key={tag} className="text-xs bg-neutral-800 text-neutral-400 px-2 py-1 rounded-full">
                     #{tag}
                   </span>
                 ))}
@@ -125,18 +128,16 @@ export function FilmDetailPage() {
           {/* Right: purchase card */}
           <div className="md:col-span-1">
             <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sticky top-6">
-
               <div className="text-3xl font-bold text-amber-400 mb-1">
                 ${Number(film.ticketPrice).toFixed(2)}
               </div>
-              <p className="text-neutral-400 text-sm mb-6">
-                One-time ticket — watch anytime
-              </p>
+              <p className="text-neutral-400 text-sm mb-6">One-time ticket — watch anytime</p>
 
               <div className="space-y-3 mb-6">
                 <Feature icon={<Play className="w-4 h-4" />}   text="Stream in full quality" />
                 <Feature icon={<Ticket className="w-4 h-4" />} text="5 minutes of shareable clips" />
                 <Feature icon={<Star className="w-4 h-4" />}   text="Resume where you left off" />
+                <Feature icon={<Users className="w-4 h-4" />}  text="Comment and share posts" />
               </div>
 
               {buyError && (
@@ -155,8 +156,7 @@ export function FilmDetailPage() {
                   <Play className="w-4 h-4" /> Watch now
                 </Link>
               ) : (
-                <button
-                  onClick={() => { setBuyError(''); buyMutation.mutate(); }}
+                <button onClick={() => { setBuyError(''); buyMutation.mutate(); }}
                   disabled={buyMutation.isPending}
                   className="w-full flex items-center justify-center gap-2 bg-amber-400
                              hover:bg-amber-300 disabled:opacity-50 text-neutral-950
@@ -165,12 +165,56 @@ export function FilmDetailPage() {
                   {buyMutation.isPending ? 'Processing…' : 'Buy ticket'}
                 </button>
               )}
-
-              <p className="text-xs text-neutral-500 text-center mt-3">
-                Secure payment via Stripe
-              </p>
+              <p className="text-xs text-neutral-500 text-center mt-3">Secure payment via Stripe</p>
             </div>
           </div>
+        </div>
+
+        {/* Social section: Comments + Posts tabs */}
+        <div className="border-t border-neutral-800 pt-8">
+          <div className="flex items-center gap-1 mb-6 bg-neutral-900 border border-neutral-800
+                          rounded-xl p-1 w-fit">
+            <button onClick={() => setSocialTab('comments')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                          ${socialTab === 'comments' ? 'bg-amber-400 text-neutral-950' : 'text-neutral-400 hover:text-white'}`}>
+              Comments
+            </button>
+            <button onClick={() => setSocialTab('posts')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                          ${socialTab === 'posts' ? 'bg-amber-400 text-neutral-950' : 'text-neutral-400 hover:text-white'}`}>
+              Community posts
+            </button>
+          </div>
+
+          {socialTab === 'comments' && (
+            <FilmComments filmId={filmId!} />
+          )}
+
+          {socialTab === 'posts' && (
+            <div className="space-y-4">
+              <CreatePostForm
+                filmId={filmId}
+                filmTitle={film.title}
+                queryKeys={[filmPostsKey]}
+                placeholder={`Share your thoughts on "${film.title}"…`}
+              />
+              {filmPosts?.posts.length === 0 ? (
+                <div className="text-center py-10 text-neutral-500 text-sm">
+                  No community posts for this film yet. Be the first!
+                </div>
+              ) : (
+                filmPosts?.posts.map(post => (
+                  <PostCard key={post.id} post={post} queryKeys={[filmPostsKey]} />
+                ))
+              )}
+              {filmPosts && filmPosts.totalPages > 1 && (
+                <Link to={`/social/hashtag/films`}
+                  className="block text-center text-sm text-amber-400 hover:underline pt-2">
+                  See all posts →
+                </Link>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>
@@ -179,8 +223,7 @@ export function FilmDetailPage() {
 
 function Badge({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <span className="flex items-center gap-1.5 text-xs bg-neutral-800 text-neutral-300
-                     px-3 py-1 rounded-full">
+    <span className="flex items-center gap-1.5 text-xs bg-neutral-800 text-neutral-300 px-3 py-1 rounded-full">
       {icon}{children}
     </span>
   );
@@ -189,8 +232,7 @@ function Badge({ children, icon }: { children: React.ReactNode; icon?: React.Rea
 function Feature({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-3 text-sm text-neutral-300">
-      <span className="text-amber-400">{icon}</span>
-      {text}
+      <span className="text-amber-400">{icon}</span>{text}
     </div>
   );
 }

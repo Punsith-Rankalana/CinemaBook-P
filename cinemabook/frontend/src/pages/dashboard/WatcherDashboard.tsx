@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Film, Ticket, Play, LogOut, Search } from 'lucide-react';
+import { Film, Ticket, Play, LogOut, Search, Users } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import { watcherService } from '../../services/watcherService';
@@ -40,7 +40,15 @@ export function WatcherDashboard() {
       <header className="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Cinema<span className="text-amber-400">Book</span></h1>
         <div className="flex items-center gap-4">
-          <span className="text-neutral-400 text-sm">Hello, <span className="text-white">{user?.displayName}</span></span>
+          <Link to="/social"
+            className="flex items-center gap-2 text-sm border border-neutral-700
+                       hover:border-amber-400 text-neutral-300 hover:text-amber-400
+                       px-3 py-1.5 rounded-lg transition-colors">
+            <Users className="w-4 h-4" /> Social
+          </Link>
+          <span className="text-neutral-400 text-sm">
+            Hello, <span className="text-white">{user?.displayName}</span>
+          </span>
           <button onClick={handleLogout}
             className="flex items-center gap-1 text-sm text-neutral-400 hover:text-white transition-colors">
             <LogOut className="w-4 h-4" /> Sign out
