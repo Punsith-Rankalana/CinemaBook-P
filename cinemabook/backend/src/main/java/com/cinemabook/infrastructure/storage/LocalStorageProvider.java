@@ -35,7 +35,7 @@ public class LocalStorageProvider implements StorageProvider {
 
     public LocalStorageProvider(
             @Value("${cinemabook.storage.local-path:${user.home}/cinemabook-storage}") String localPath,
-            @Value("${cinemabook.storage.local-base-url:http://localhost:8080/api/v1/files}") String baseUrl) {
+            @Value("${cinemabook.storage.local-base-url:http://localhost:8082/api/v1/files}") String baseUrl) {
 
         this.basePath = Paths.get(localPath);
         this.baseUrl  = baseUrl;

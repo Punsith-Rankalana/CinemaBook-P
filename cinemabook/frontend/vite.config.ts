@@ -6,9 +6,12 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      // Proxy /api requests to Spring Boot during development
+      // All /api requests (including /api/v1/files/stream) go to Spring Boot.
+      // Using a relative stream URL on the <video> element means the browser
+      // fetches /api/v1/files/stream?token=... from localhost:3000 — Vite
+      // proxies it to localhost:8082 transparently. No CORS issues at all.
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8082',
         changeOrigin: true,
       },
     },

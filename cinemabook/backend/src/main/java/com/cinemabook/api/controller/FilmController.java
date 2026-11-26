@@ -191,4 +191,20 @@ public class FilmController {
         return ResponseEntity.ok(ApiResponse.ok(
                 filmService.getFilm(filmId, userId)));
     }
+
+    /**
+     * POST /owner/films/{filmId}/mark-ready
+     * Moves a stuck PROCESSING film to READY status.
+     * Used when confirmUpload was never called (browser closed, network error, etc.).
+     * Backend verifies the file actually exists in storage before changing status.
+     */
+    @PostMapping("/owner/films/{filmId}/mark-ready")
+    @PreAuthorize("hasRole('FILM_OWNER')")
+    public ResponseEntity<ApiResponse<FilmResponse>> markReady(
+            @AuthenticationPrincipal UUID ownerId,
+            @PathVariable UUID filmId) {
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                filmService.markReady(ownerId, filmId)));
+    }
 }

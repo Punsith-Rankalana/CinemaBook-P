@@ -30,13 +30,13 @@ import java.util.UUID;
 @Slf4j
 public class FilmService {
 
-    private final FilmRepository             filmRepository;
-    private final FilmUploadJobRepository    uploadJobRepository;
+    private final FilmRepository filmRepository;
+    private final FilmUploadJobRepository uploadJobRepository;
     private final FilmPriceHistoryRepository priceHistoryRepository;
     private final FilmOwnerProfileRepository ownerProfileRepository;
-    private final UserRepository             userRepository;
-    private final StorageProvider            storageProvider;
-    private final DefaultFilmUploadPolicy    uploadPolicy;
+    private final UserRepository userRepository;
+    private final StorageProvider storageProvider;
+    private final DefaultFilmUploadPolicy uploadPolicy;
 
     private static final long UPLOAD_URL_EXPIRY_SECONDS = 3600;
 
@@ -69,7 +69,7 @@ public class FilmService {
         film = filmRepository.save(film);
 
         String storageKey = buildStorageKey(ownerId, film.getId());
-        String uploadUrl  = storageProvider.generateUploadPresignedUrl(
+        String uploadUrl = storageProvider.generateUploadPresignedUrl(
                 storageKey, Duration.ofSeconds(UPLOAD_URL_EXPIRY_SECONDS));
 
         FilmUploadJobEntity job = FilmUploadJobEntity.builder()
@@ -156,13 +156,13 @@ public class FilmService {
     public FilmResponse updateFilm(UUID ownerId, UUID filmId, UpdateFilmRequest req) {
         FilmEntity film = findOwnedFilm(filmId, ownerId);
 
-        if (req.title()       != null) film.setTitle(req.title());
+        if (req.title() != null) film.setTitle(req.title());
         if (req.description() != null) film.setDescription(req.description());
-        if (req.genre()       != null) film.setGenre(req.genre());
-        if (req.tags()        != null) film.setTags(req.tags().toArray(new String[0]));
+        if (req.genre() != null) film.setGenre(req.genre());
+        if (req.tags() != null) film.setTags(req.tags().toArray(new String[0]));
         if (req.releaseYear() != null) film.setReleaseYear(req.releaseYear());
-        if (req.language()    != null) film.setLanguage(req.language());
-        if (req.ageRating()   != null) film.setAgeRating(req.ageRating());
+        if (req.language() != null) film.setLanguage(req.language());
+        if (req.ageRating() != null) film.setAgeRating(req.ageRating());
 
         filmRepository.save(film);
         return toFilmResponse(film);
@@ -320,5 +320,50 @@ public class FilmService {
                 f.getCreatedAt(),
                 f.getUpdatedAt()
         );
+    }
+
+
+// ── Mark as READY (recover stuck PROCESSING films) ────────────────────────
+
+    /**
+     * Moves a PROCESSING film to READY status.
+     * Used when a film is stuck in PROCESSING — the file was uploaded but
+     * confirmUpload was never called (e.g. browser closed mid-flow).
+     * <p>
+     * Checks that the file actually exists in storage before marking READY.
+     * Open/Closed: new recovery strategies extend this pattern without changing it.
+     */
+    @Transactional
+    public FilmResponse markReady(UUID ownerId, UUID filmId) {
+        FilmEntity film = findOwnedFilm(filmId, ownerId);
+
+        if (!FilmEntity.FilmStatus.PROCESSING.equals(film.getStatus())) {
+            throw new BusinessRuleException(
+                    "Only PROCESSING films can be marked ready. Current status: "
+                            + film.getStatus());
+        }
+
+        // Build the expected storage key for this film
+        String expectedKey = buildStorageKey(ownerId, filmId);
+
+        // Check if the file exists at the expected path
+        if (!storageProvider.exists(expectedKey)) {
+            throw new BusinessRuleException(
+                    "No video file found for this film. " +
+                            "Please go to Upload film and re-upload the video.");
+        }
+
+        film.setStorageKey(expectedKey);
+        film.setStatus(FilmEntity.FilmStatus.READY);
+        filmRepository.save(film);
+
+        // Update job status if exists
+        uploadJobRepository.findByFilmId(filmId).ifPresent(job -> {
+            job.setJobStatus(FilmUploadJobEntity.JobStatus.DONE);
+            uploadJobRepository.save(job);
+        });
+
+        log.info("Film marked ready: filmId={} ownerId={}", filmId, ownerId);
+        return toFilmResponse(film);
     }
 }
