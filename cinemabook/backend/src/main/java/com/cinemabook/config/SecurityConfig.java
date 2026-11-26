@@ -26,11 +26,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final String allowedOrigins;
+    private final String        allowedOrigins;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter,
-                          @Value("${cinemabook.cors.allowed-origins}") String allowedOrigins) {
-        this.jwtAuthFilter = jwtAuthFilter;
+    public SecurityConfig(
+            JwtAuthFilter jwtAuthFilter,
+            @Value("${cinemabook.cors.allowed-origins}") String allowedOrigins) {
+        this.jwtAuthFilter  = jwtAuthFilter;
         this.allowedOrigins = allowedOrigins;
     }
 
@@ -42,6 +43,8 @@ public class SecurityConfig {
                 .sessionManagement(sm ->
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+
+                        // ── Public auth endpoints ──────────────────────────
                         .requestMatchers(HttpMethod.POST,
                                 "/auth/register/watcher",
                                 "/auth/register/film-owner",
@@ -49,11 +52,32 @@ public class SecurityConfig {
                                 "/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/auth/verify-email").permitAll()
+
+                        // ── Health check ───────────────────────────────────
                         .requestMatchers("/actuator/health").permitAll()
+
+                        // ── Dev file upload (PUT, no JWT needed) ───────────
+                        // Storage key is a UUID path only the owner received.
+                        // In production this route does not exist — S3 handles it.
+                        .requestMatchers(HttpMethod.PUT, "/files/upload/**").permitAll()
+
+                        // ── Video stream (GET, no JWT header — token is in URL) ──
+                        // The <video> element cannot send Authorization headers.
+                        // Authentication is done inside StreamingController via
+                        // the signed JWT embedded in the ?token= query parameter.
+                        // The token is short-lived (4 hours) and signed with the
+                        // same secret as all other JWTs — secure without a header.
+                        .requestMatchers(HttpMethod.GET, "/files/stream").permitAll()
+
+                        // ── Clip downloads (GET, no JWT needed) ───────────
+                        // Clips are intentionally downloadable — they are watermarked
+                        // server-side with the watcher's userId + timestamp.
+                        .requestMatchers(HttpMethod.GET, "/files/clips/**").permitAll()
+
+                        // ── Everything else requires a valid JWT ───────────
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthFilter,
-                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

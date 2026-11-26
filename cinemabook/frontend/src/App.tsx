@@ -1,56 +1,54 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ProtectedRoute }             from './components/auth/ProtectedRoute';
-import { useCurrentUser }             from './hooks/useCurrentUser';
+import { ProtectedRoute }            from './components/auth/ProtectedRoute';
+import { useCurrentUser }            from './hooks/useCurrentUser';
 
-// Pages
-import { LoginPage }              from './pages/auth/LoginPage';
-import { RegisterWatcherPage }    from './pages/auth/RegisterWatcherPage';
-import { RegisterFilmOwnerPage }  from './pages/auth/RegisterFilmOwnerPage';
-import { WatcherDashboard }       from './pages/dashboard/WatcherDashboard';
-import { OwnerDashboard }         from './pages/dashboard/OwnerDashboard';
+// Auth
+import { LoginPage }             from './pages/auth/LoginPage';
+import { RegisterWatcherPage }   from './pages/auth/RegisterWatcherPage';
+import { RegisterFilmOwnerPage } from './pages/auth/RegisterFilmOwnerPage';
+
+// Watcher (Phase 3)
+import { WatcherDashboard }  from './pages/dashboard/WatcherDashboard';
+import { FilmDetailPage }    from './pages/watcher/FilmDetailPage';
+import { WatchPage }         from './pages/watcher/WatchPage';
+
+// Owner (Phase 2)
+import { OwnerDashboard }   from './pages/dashboard/OwnerDashboard';
+import { UploadFilmPage }   from './pages/owner/UploadFilmPage';
+import { BankLinkPage }     from './pages/owner/BankLinkPage';
+import { EditFilmPage }     from './pages/owner/EditFilmPage';
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 60_000, retry: 1 },
-  },
+  defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
 });
 
-// Separate component so useCurrentUser can access QueryClient context
 function AppRoutes() {
-  useCurrentUser();   // syncs /users/me into the auth store on startup
-
+  useCurrentUser();
   return (
     <Routes>
-
       {/* Public */}
       <Route path="/login"               element={<LoginPage />} />
       <Route path="/register"            element={<RegisterWatcherPage />} />
       <Route path="/register/film-owner" element={<RegisterFilmOwnerPage />} />
       <Route path="/"                    element={<Navigate to="/login" replace />} />
 
-      {/* Watcher only */}
+      {/* Watcher */}
       <Route element={<ProtectedRoute requiredRole="WATCHER" />}>
-        <Route path="/dashboard"         element={<WatcherDashboard />} />
-        {/* Phase 3: /films, /films/:id, /watch/:ticketId  */}
-        {/* Phase 4: /social, /social/post/:id             */}
-        {/* Phase 5: /messages, /messages/:conversationId  */}
+        <Route path="/dashboard"           element={<WatcherDashboard />} />
+        <Route path="/films/:filmId"       element={<FilmDetailPage />} />
+        <Route path="/watch/:filmId"       element={<WatchPage />} />
       </Route>
 
-      {/* Film owner only */}
+      {/* Film owner */}
       <Route element={<ProtectedRoute requiredRole="FILM_OWNER" />}>
-        <Route path="/owner/dashboard"   element={<OwnerDashboard />} />
-        {/* Phase 2: /owner/upload, /owner/films, /owner/earnings */}
+        <Route path="/owner/dashboard"            element={<OwnerDashboard />} />
+        <Route path="/owner/upload"               element={<UploadFilmPage />} />
+        <Route path="/owner/bank"                 element={<BankLinkPage />} />
+        <Route path="/owner/films/:filmId/edit"   element={<EditFilmPage />} />
       </Route>
 
-      {/* Any authenticated user */}
-      <Route element={<ProtectedRoute />}>
-        {/* Phase 6: /profile/:username, /settings */}
-      </Route>
-
-      {/* 404 */}
       <Route path="*" element={<Navigate to="/login" replace />} />
-
     </Routes>
   );
 }
