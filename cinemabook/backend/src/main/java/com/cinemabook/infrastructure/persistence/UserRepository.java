@@ -1,6 +1,8 @@
 package com.cinemabook.infrastructure.persistence;
 
 import com.cinemabook.domain.user.AccountStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +26,16 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     @Query("SELECT u FROM UserEntity u WHERE u.email = :login OR u.username = :login")
     Optional<UserEntity> findByEmailOrUsername(@Param("login") String login);
+
+    /** Search active users by username or displayName (case-insensitive). */
+    @Query("""
+        SELECT u FROM UserEntity u
+        WHERE u.accountStatus = 'ACTIVE'
+        AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%'))
+          OR LOWER(u.displayName) LIKE LOWER(CONCAT('%', :q, '%')))
+        ORDER BY u.username ASC
+    """)
+    Page<UserEntity> searchUsers(@Param("q") String q, Pageable pageable);
 
     @Modifying
     @Query("UPDATE UserEntity u SET u.lastLoginAt = :time WHERE u.id = :id")

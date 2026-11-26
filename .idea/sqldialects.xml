@@ -5,5 +5,6 @@
     <file url="file://$PROJECT_DIR$/cinemabook/backend/src/main/resources/db/migration/V2__performance_indexes.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/cinemabook/backend/src/main/resources/db/migration/V4__phase2_film_owner.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/cinemabook/backend/src/main/resources/db/migration/V5__phase3_streaming.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/cinemabook/backend/src/main/resources/db/migration/V6__phase4_social.sql" dialect="GenericSQL" />
   </component>
 </project>
