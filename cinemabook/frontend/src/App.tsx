@@ -20,9 +20,8 @@ import { BankLinkPage }     from './pages/owner/BankLinkPage';
 import { EditFilmPage }     from './pages/owner/EditFilmPage';
 
 // Social (Phase 4)
-import { SocialFeedPage }    from './pages/social/SocialFeedPage';
-import { HashtagPage }       from './pages/social/HashtagPage';
-import { UserProfilePage }   from './pages/social/UserProfilePage';
+import { SocialFeedPage }   from './pages/social/SocialFeedPage';
+import { HashtagPage }      from './pages/social/HashtagPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
@@ -40,12 +39,11 @@ function AppRoutes() {
 
       {/* Watcher */}
       <Route element={<ProtectedRoute requiredRole="WATCHER" />}>
-        <Route path="/dashboard"            element={<WatcherDashboard />} />
-        <Route path="/films/:filmId"        element={<FilmDetailPage />} />
-        <Route path="/watch/:filmId"        element={<WatchPage />} />
-        <Route path="/social"              element={<SocialFeedPage />} />
-        <Route path="/social/hashtag/:tag"  element={<HashtagPage />} />
-        <Route path="/profile/:username"    element={<UserProfilePage />} />
+        <Route path="/dashboard"           element={<WatcherDashboard />} />
+        <Route path="/films/:filmId"       element={<FilmDetailPage />} />
+        <Route path="/watch/:filmId"       element={<WatchPage />} />
+        <Route path="/social"             element={<SocialFeedPage />} />
+        <Route path="/social/hashtag/:tag" element={<HashtagPage />} />
       </Route>
 
       {/* Film owner */}
