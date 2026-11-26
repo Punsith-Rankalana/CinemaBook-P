@@ -1,0 +1,14 @@
+target/
+.env
+*.class
+*.jar
+*.war
+*.log
+.idea/*.xml
+!.idea/runConfigurations/
+!.idea/compiler.xml
+!.idea/encodings.xml
+.DS_Store
+# Local environment files
+.env.*
+!.env.example
