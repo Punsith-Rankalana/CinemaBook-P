@@ -17,7 +17,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Single Responsibility: social platform features (posts, likes, follows, hashtags).
@@ -53,13 +52,11 @@ public class SocialService {
                 .mediaUrl(req.mediaUrl())
                 .build();
 
-        // Optional film tag
         if (req.filmId() != null && !req.filmId().isBlank()) {
             filmRepository.findById(UUID.fromString(req.filmId()))
                     .ifPresent(post::setFilm);
         }
 
-        // Extract and link hashtags from content
         Set<HashtagEntity> hashtags = extractAndSaveHashtags(req.content());
         post.setHashtags(hashtags);
 
@@ -80,7 +77,6 @@ public class SocialService {
             throw new UnauthorisedException("You can only delete your own posts.");
         }
 
-        // Decrement hashtag counts
         post.getHashtags().forEach(h ->
                 hashtagRepository.adjustPostCount(h.getId(), -1));
 
@@ -138,11 +134,9 @@ public class SocialService {
         if (likeRepository.existsByUserIdAndPostId(userId, postId)) {
             likeRepository.deleteByUserIdAndPostId(userId, postId);
             postRepository.adjustLikesCount(postId, -1);
-            long newCount = post.getLikesCount() - 1;
-            return new LikeResponse(false, Math.max(0, newCount));
+            return new LikeResponse(false, Math.max(0, post.getLikesCount() - 1));
         } else {
-            LikeEntity like = LikeEntity.builder().user(user).post(post).build();
-            likeRepository.save(like);
+            likeRepository.save(LikeEntity.builder().user(user).post(post).build());
             postRepository.adjustLikesCount(postId, 1);
             return new LikeResponse(true, post.getLikesCount() + 1);
         }
@@ -166,25 +160,22 @@ public class SocialService {
             long count = followRepository.countFollowers(followeeId);
             return new FollowResponse(false, count);
         } else {
-            FollowEntity follow = FollowEntity.builder()
-                    .follower(follower).followee(followee).build();
-            followRepository.save(follow);
+            followRepository.save(
+                    FollowEntity.builder().follower(follower).followee(followee).build());
             long count = followRepository.countFollowers(followeeId);
             return new FollowResponse(true, count);
         }
     }
 
     @Transactional(readOnly = true)
-    public UserPageResponse getFollowers(UUID userId, UUID requesterId,
-                                         int page, int size) {
+    public UserPageResponse getFollowers(UUID userId, UUID requesterId, int page, int size) {
         Page<UserEntity> result = followRepository.findFollowers(
                 userId, PageRequest.of(page, size));
         return toUserPage(result, requesterId);
     }
 
     @Transactional(readOnly = true)
-    public UserPageResponse getFollowing(UUID userId, UUID requesterId,
-                                         int page, int size) {
+    public UserPageResponse getFollowing(UUID userId, UUID requesterId, int page, int size) {
         Page<UserEntity> result = followRepository.findFollowing(
                 userId, PageRequest.of(page, size));
         return toUserPage(result, requesterId);
@@ -203,8 +194,8 @@ public class SocialService {
     @Transactional(readOnly = true)
     public List<HashtagResponse> searchHashtags(String prefix, int limit) {
         return hashtagRepository
-                .findByTagStartingWithOrderByPostCountDesc(
-                        prefix.toLowerCase(), PageRequest.of(0, limit))
+                .findByTagStartingWithOrderByPostCountDesc(prefix.toLowerCase(),
+                        PageRequest.of(0, limit))
                 .stream()
                 .map(h -> new HashtagResponse(h.getId().toString(), h.getTag(), h.getPostCount()))
                 .toList();
@@ -233,16 +224,7 @@ public class SocialService {
         return entities;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private PostEntity.PostType parsePostType(String type) {
-        if (type == null) return PostEntity.PostType.TEXT;
-        try {
-            return PostEntity.PostType.valueOf(type.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return PostEntity.PostType.TEXT;
-        }
-    }
+    // ── Helpers — PUBLIC so UserController can call toUserSummary ─────────────
 
     private PostPageResponse toPostPage(Page<PostEntity> page, UUID requesterId) {
         return new PostPageResponse(
@@ -252,10 +234,9 @@ public class SocialService {
                 page.getTotalElements(), page.getTotalPages());
     }
 
-    PostResponse toPostResponse(PostEntity p, UUID requesterId) {
+    public PostResponse toPostResponse(PostEntity p, UUID requesterId) {
         boolean likedByMe = requesterId != null &&
                 likeRepository.existsByUserIdAndPostId(requesterId, p.getId());
-
         return new PostResponse(
                 p.getId().toString(),
                 toAuthorDto(p.getAuthor()),
@@ -281,7 +262,12 @@ public class SocialService {
                 page.getTotalElements(), page.getTotalPages());
     }
 
-    UserSummaryResponse toUserSummary(UserEntity u, UUID requesterId) {
+    /**
+     * Public — called by UserController.searchUsers() from a different package.
+     * Dependency Inversion: UserController depends on this service method,
+     * not on repositories directly.
+     */
+    public UserSummaryResponse toUserSummary(UserEntity u, UUID requesterId) {
         boolean followedByMe = requesterId != null &&
                 followRepository.existsByFollowerIdAndFolloweeId(requesterId, u.getId());
         return new UserSummaryResponse(
@@ -295,12 +281,24 @@ public class SocialService {
         );
     }
 
-    AuthorDto toAuthorDto(UserEntity u) {
+    /**
+     * Public — used by FilmCommentService and other services in different packages.
+     */
+    public AuthorDto toAuthorDto(UserEntity u) {
         return new AuthorDto(
                 u.getId().toString(),
                 u.getUsername(),
                 u.getDisplayName(),
                 u.getAvatarUrl()
         );
+    }
+
+    private PostEntity.PostType parsePostType(String type) {
+        if (type == null) return PostEntity.PostType.TEXT;
+        try {
+            return PostEntity.PostType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return PostEntity.PostType.TEXT;
+        }
     }
 }
