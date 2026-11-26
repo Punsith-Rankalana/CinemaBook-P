@@ -73,9 +73,14 @@ cinemabook/
 - Node 20+
 - Docker Desktop
 
-### 1. Start infrastructure
+### 1. Set up local configuration and infrastructure
+
+Copy `backend/.env.example` to `backend/.env`. Set a local PostgreSQL password
+and a random JWT signing secret of at least 32 bytes. Use plain `NAME=value`
+lines, without surrounding quotes. Keep `STRIPE_MOCK=true` for a local demo.
+Run Docker Compose from the folder containing `docker-compose.yml`.
 ```bash
-docker compose up -d
+docker compose --env-file backend/.env up -d
 # Starts PostgreSQL on :5432 and Redis on :6379
 ```
 
@@ -83,7 +88,7 @@ docker compose up -d
 ```bash
 cd backend
 ./mvnw spring-boot:run
-# API available at http://localhost:8080/api/v1
+# API available at http://localhost:8082/api/v1
 # Flyway runs migrations automatically on startup
 ```
 
@@ -110,7 +115,7 @@ npm run dev
 
 ### Example: Register a watcher
 ```bash
-curl -X POST http://localhost:8080/api/v1/auth/register/watcher \
+curl -X POST http://localhost:8082/api/v1/auth/register/watcher \
   -H "Content-Type: application/json" \
   -d '{
     "email": "alice@example.com",
@@ -122,7 +127,7 @@ curl -X POST http://localhost:8080/api/v1/auth/register/watcher \
 
 ### Example: Login
 ```bash
-curl -X POST http://localhost:8080/api/v1/auth/login \
+curl -X POST http://localhost:8082/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "login": "alice@example.com",
@@ -139,10 +144,18 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_USERNAME` | `cinemabook` | PostgreSQL username |
-| `DB_PASSWORD` | `cinemabook_secret` | PostgreSQL password |
+| `DB_PASSWORD` | Required | PostgreSQL password, also used by Docker Compose |
 | `REDIS_HOST` | `localhost` | Redis host |
-| `JWT_SECRET` | *(change this!)* | 256-bit JWT signing secret |
+| `JWT_SECRET` | Required | Random JWT signing secret, at least 32 bytes |
 | `CORS_ORIGINS` | `http://localhost:3000` | Allowed frontend origins |
+| `STRIPE_MOCK` | `true` | Use mock payment flows locally |
+| `STRIPE_SECRET_KEY` | Empty | Reserved for Stripe configuration |
+| `TEST_DB_URL` | `jdbc:postgresql://localhost:5432/cinemabook_db_test` | Separate database for integration tests |
+
+Spring Boot reads `backend/.env` when started with `backend/` as its working
+directory. Real environment variables can override it. The database container
+uses `DB_PASSWORD` when it first initialises its data volume. If a volume already
+exists, use its current local database password or change it in PostgreSQL.
 
 ---
 

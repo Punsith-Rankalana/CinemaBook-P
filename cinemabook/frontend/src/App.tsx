@@ -10,6 +10,8 @@ import { RegisterFilmOwnerPage } from './pages/auth/RegisterFilmOwnerPage';
 
 // Watcher pages
 import { WatcherDashboard }  from './pages/dashboard/WatcherDashboard';
+import { FilmDetailPage }    from './pages/watcher/FilmDetailPage';
+import { WatchPage }         from './pages/watcher/WatchPage';
 
 // Owner pages (Phase 2)
 import { OwnerDashboard }   from './pages/dashboard/OwnerDashboard';
@@ -34,6 +36,8 @@ function AppRoutes() {
       {/* Watcher */}
       <Route element={<ProtectedRoute requiredRole="WATCHER" />}>
         <Route path="/dashboard" element={<WatcherDashboard />} />
+        <Route path="/films/:filmId"       element={<FilmDetailPage />} />
+        <Route path="/watch/:filmId"       element={<WatchPage />} />
         {/* Phase 3: /films, /films/:id, /watch/:ticketId */}
       </Route>
 
